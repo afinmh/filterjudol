@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filter Anti Judol</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css">
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <!-- Papa Parse untuk parsing CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Analisis Komentar Judi Online</h1>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="single">Analisis Tunggal</button>
+            <button class="tab-btn" data-tab="batch">Analisis Batch (CSV)</button>
+        </div>
+
+        <div id="single-tab" class="tab-content active">
+            <div class="input-section">
+                <textarea 
+                    id="commentInput" 
+                    placeholder="Masukkan komentar untuk dianalisis..."
+                    rows="4"
+                ></textarea>
+                <button id="analyzeBtn">Analisis</button>
+            </div>
+
+            <div id="result" class="result-section hidden">
+                <h2>Hasil Analisis:</h2>
+                <div class="result-content">
+                    <p>Teks: <span id="analyzedText"></span></p>
+                    <p>Status: <span id="status"></span></p>
+                    <p>Tingkat Kepercayaan: <span id="confidence"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="batch-tab" class="tab-content">
+            <div class="input-section">
+                <div class="file-upload">
+                    <input type="file" id="csvFile" accept=".csv" />
+                    <label for="csvFile" class="file-label">
+                        <span class="file-icon">📁</span>
+                        Pilih file CSV
+                    </label>
+                    <span id="fileName" class="file-name"></span>
+                </div>
+                <button id="analyzeBatchBtn" disabled>Analisis CSV</button>
+            </div>
+
+            <div id="batchResult" class="batch-result hidden">
+                <h2>Hasil Analisis Batch:</h2>
+                <div class="stats">
+                    <div class="stat-box normal">
+                        <h3>Komentar Normal</h3>
+                        <p class="count" id="normalCount">0</p>
+                    </div>
+                    <div class="stat-box suspicious">
+                        <h3>Komentar Mencurigakan</h3>
+                        <p class="count" id="suspiciousCount">0</p>
+                    </div>
+                    <div class="stat-box judol">
+                        <h3>Komentar Judi</h3>
+                        <p class="count" id="judolCount">0</p>
+                    </div>
+                </div>
+                <div class="result-tables">
+                    <div class="table-container">
+                        <div class="table-header">
+                            <h3>Komentar Normal</h3>
+                            <button class="download-btn" data-table="normal">
+                                <span class="download-icon">⬇️</span>
+                                Download CSV
+                            </button>
+                        </div>
+                        <div class="table-scroll">
+                            <table id="normalTable">
+                                <thead>
+                                    <tr>
+                                        <th width="10%">No</th>
+                                        <th width="70%">Komentar</th>
+                                        <th width="20%">Kepercayaan</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <div class="table-header">
+                            <h3>Komentar Mencurigakan</h3>
+                            <button class="download-btn" data-table="suspicious">
+                                <span class="download-icon">⬇️</span>
+                                Download CSV
+                            </button>
+                        </div>
+                        <div class="table-scroll">
+                            <table id="suspiciousTable">
+                                <thead>
+                                    <tr>
+                                        <th width="10%">No</th>
+                                        <th width="70%">Komentar</th>
+                                        <th width="20%">Kepercayaan</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <div class="table-header">
+                            <h3>Komentar Judi</h3>
+                            <button class="download-btn" data-table="judol">
+                                <span class="download-icon">⬇️</span>
+                                Download CSV
+                            </button>
+                        </div>
+                        <div class="table-scroll">
+                            <table id="judolTable">
+                                <thead>
+                                    <tr>
+                                        <th width="10%">No</th>
+                                        <th width="70%">Komentar</th>
+                                        <th width="20%">Kepercayaan</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Menganalisis komentar...</p>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 
