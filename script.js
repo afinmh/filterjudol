@@ -22,7 +22,12 @@ async function initModel() {
         document.getElementById('analyzeBtn').disabled = false;
     } catch (error) {
         console.error('Error memuat model:', error);
-        alert('Terjadi kesalahan saat memuat model. Silakan refresh halaman.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Terjadi kesalahan saat memuat model. Silakan refresh halaman.',
+            confirmButtonText: 'OK'
+        });
     }
 }
 
@@ -73,7 +78,12 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
     const text = document.getElementById('commentInput').value.trim();
     
     if (!text) {
-        alert('Silakan masukkan komentar terlebih dahulu!');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Peringatan',
+            text: 'Silakan masukkan komentar terlebih dahulu!',
+            confirmButtonText: 'OK'
+        });
         return;
     }
     
@@ -102,7 +112,12 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         resultDiv.classList.remove('hidden');
     } catch (error) {
         console.error('Error menganalisis komentar:', error);
-        alert('Terjadi kesalahan saat menganalisis komentar. Silakan coba lagi.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Terjadi kesalahan saat menganalisis komentar. Silakan coba lagi.',
+            confirmButtonText: 'OK'
+        });
     } finally {
         // Sembunyikan loading dan aktifkan tombol
         document.getElementById('loading').classList.add('hidden');
@@ -139,6 +154,24 @@ csvFile.addEventListener('change', (e) => {
         analyzeBatchBtn.disabled = true;
     }
 });
+
+// Fungsi untuk menghilangkan komentar duplikat
+function removeDuplicates(comments) {
+    const uniqueComments = new Map();
+    
+    comments.forEach(comment => {
+        // Normalisasi komentar (lowercase dan trim)
+        const normalizedComment = comment.comment.toLowerCase().trim();
+        
+        // Jika komentar belum ada atau confidence lebih tinggi, update
+        if (!uniqueComments.has(normalizedComment) || 
+            comment.confidence > uniqueComments.get(normalizedComment).confidence) {
+            uniqueComments.set(normalizedComment, comment);
+        }
+    });
+    
+    return Array.from(uniqueComments.values());
+}
 
 // Batch analysis
 analyzeBatchBtn.addEventListener('click', async () => {
@@ -185,22 +218,58 @@ analyzeBatchBtn.addEventListener('click', async () => {
             }
         }
 
+        // Remove duplicates from each category
+        const uniqueNormalComments = removeDuplicates(normalComments);
+        const uniqueSuspiciousComments = removeDuplicates(suspiciousComments);
+        const uniqueJudolComments = removeDuplicates(judolComments);
+
+        // Sort comments by confidence (descending)
+        const sortByConfidence = (a, b) => b.confidence - a.confidence;
+        uniqueNormalComments.sort(sortByConfidence);
+        uniqueSuspiciousComments.sort(sortByConfidence);
+        uniqueJudolComments.sort(sortByConfidence);
+
         // Update statistics
-        document.getElementById('normalCount').textContent = normalComments.length;
-        document.getElementById('suspiciousCount').textContent = suspiciousComments.length;
-        document.getElementById('judolCount').textContent = judolComments.length;
+        document.getElementById('normalCount').textContent = uniqueNormalComments.length;
+        document.getElementById('suspiciousCount').textContent = uniqueSuspiciousComments.length;
+        document.getElementById('judolCount').textContent = uniqueJudolComments.length;
 
         // Update tables
-        updateTable('normalTable', normalComments);
-        updateTable('suspiciousTable', suspiciousComments);
-        updateTable('judolTable', judolComments);
+        updateTable('normalTable', uniqueNormalComments);
+        updateTable('suspiciousTable', uniqueSuspiciousComments);
+        updateTable('judolTable', uniqueJudolComments);
 
         // Show results
         document.getElementById('batchResult').classList.remove('hidden');
 
+        // Show summary of removed duplicates
+        const totalComments = data.length;
+        const totalUniqueComments = uniqueNormalComments.length + uniqueSuspiciousComments.length + uniqueJudolComments.length;
+        const removedDuplicates = totalComments - totalUniqueComments;
+        
+        if (removedDuplicates > 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Analisis Selesai',
+                html: `
+                    <div style="text-align: left;">
+                        <p><strong>Total komentar:</strong> ${totalComments}</p>
+                        <p><strong>Komentar unik:</strong> ${totalUniqueComments}</p>
+                        <p><strong>Komentar duplikat dihapus:</strong> ${removedDuplicates}</p>
+                    </div>
+                `,
+                confirmButtonText: 'OK'
+            });
+        }
+
     } catch (error) {
         console.error('Error analyzing batch:', error);
-        alert('Terjadi kesalahan saat menganalisis file CSV. Silakan coba lagi.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Terjadi kesalahan saat menganalisis file CSV. Silakan coba lagi.',
+            confirmButtonText: 'OK'
+        });
     } finally {
         // Hide loading
         document.getElementById('loading').classList.add('hidden');
@@ -210,12 +279,13 @@ analyzeBatchBtn.addEventListener('click', async () => {
 
 // Fungsi untuk mengkonversi data ke CSV
 function convertToCSV(data, category) {
-    const headers = ['No', 'Komentar', 'Kepercayaan', 'Kategori'];
+    const headers = ['No', 'Komentar', 'Kepercayaan', 'Kategori', 'Status'];
     const rows = data.map((item, index) => [
         index + 1,
         item.comment,
         (item.confidence * 100).toFixed(4) + '%',
-        category
+        category,
+        'Unik' // Menandakan bahwa ini adalah komentar unik
     ]);
     
     return [headers, ...rows]
