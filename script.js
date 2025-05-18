@@ -173,6 +173,9 @@ function removeDuplicates(comments) {
     return Array.from(uniqueComments.values());
 }
 
+// Fungsi untuk delay
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 // Batch analysis
 analyzeBatchBtn.addEventListener('click', async () => {
     const file = csvFile.files[0];
@@ -183,12 +186,26 @@ analyzeBatchBtn.addEventListener('click', async () => {
         document.getElementById('loading').classList.remove('hidden');
         analyzeBatchBtn.disabled = true;
 
+        // Reset progress bar
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.querySelector('.progress-text');
+        progressFill.style.width = '0%';
+        progressText.textContent = 'Menghitung total data...';
+
         // Parse CSV
         const text = await file.text();
         const { data } = Papa.parse(text, {
             header: true,
             skipEmptyLines: true
         });
+
+        // Count total valid comments (non-empty)
+        const totalComments = data.filter(row => row.comment && row.comment.trim()).length;
+        let processedComments = 0;
+
+        // Update progress text to show total
+        progressText.textContent = `0 dari ${totalComments} komentar`;
+        await delay(100); // Small delay to ensure UI updates
 
         // Initialize arrays for results
         const normalComments = [];
@@ -197,7 +214,7 @@ analyzeBatchBtn.addEventListener('click', async () => {
 
         // Process each comment
         for (const row of data) {
-            if (!row.comment) continue;
+            if (!row.comment || !row.comment.trim()) continue;
 
             const result = await analyzeComment(row.comment);
             const commentData = {
@@ -217,7 +234,30 @@ analyzeBatchBtn.addEventListener('click', async () => {
                     judolComments.push(commentData);
                     break;
             }
+
+            // Update progress
+            processedComments++;
+            const progress = (processedComments / totalComments) * 100;
+            
+            // Update UI in next tick to ensure smooth rendering
+            await new Promise(resolve => {
+                requestAnimationFrame(() => {
+                    progressFill.style.width = `${progress}%`;
+                    progressText.textContent = `${processedComments} dari ${totalComments} komentar`;
+                    resolve();
+                });
+            });
+
+            // Add small delay every 10 comments to ensure UI updates
+            if (processedComments % 10 === 0) {
+                await delay(10);
+            }
         }
+
+        // Final progress update
+        progressFill.style.width = '100%';
+        progressText.textContent = `${totalComments} dari ${totalComments} komentar`;
+        await delay(100);
 
         // Remove duplicates from each category
         const uniqueNormalComments = removeDuplicates(normalComments);
@@ -244,7 +284,6 @@ analyzeBatchBtn.addEventListener('click', async () => {
         document.getElementById('batchResult').classList.remove('hidden');
 
         // Show summary of removed duplicates
-        const totalComments = data.length;
         const totalUniqueComments = uniqueNormalComments.length + uniqueSuspiciousComments.length + uniqueJudolComments.length;
         const removedDuplicates = totalComments - totalUniqueComments;
         
@@ -278,6 +317,14 @@ analyzeBatchBtn.addEventListener('click', async () => {
     }
 });
 
+// Fungsi untuk memotong teks yang terlalu panjang
+function truncateText(text, maxLength = 30) {
+    if (!text) return '';
+    text = text.trim();
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+}
+
 // Update fungsi updateTable untuk memperbaiki tampilan
 function updateTable(tableId, comments) {
     const tbody = document.querySelector(`#${tableId} tbody`);
@@ -291,7 +338,7 @@ function updateTable(tableId, comments) {
             <td>${comment.comment.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
             <td>${comment.id || ''}</td>
             <td>${comment.channel || ''}</td>
-            <td>${comment.title || ''}</td>
+            <td title="${comment.title || ''}">${truncateText(comment.title)}</td>
             <td>${(comment.confidence * 100).toFixed(4)}%</td>
         `;
         tbody.appendChild(row);
