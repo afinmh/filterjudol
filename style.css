@@ -12,7 +12,7 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 2rem auto;
     padding: 2rem;
     background-color: white;
@@ -123,18 +123,10 @@ button:disabled {
     100% { transform: rotate(360deg); }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1200px) {
     .container {
         margin: 1rem;
         padding: 1rem;
-    }
-    
-    h1 {
-        font-size: 1.5rem;
-    }
-    
-    button {
-        width: 100%;
     }
 }
 
@@ -256,9 +248,9 @@ button:disabled {
 }
 
 .result-tables {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
 }
 
 .table-container {
@@ -266,6 +258,7 @@ button:disabled {
     border-radius: 4px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     margin-bottom: 1rem;
+    width: 100%;
 }
 
 .table-header {
@@ -373,7 +366,7 @@ td:nth-child(3) { /* Kolom Kepercayaan */
 
 @media (max-width: 768px) {
     .result-tables {
-        grid-template-columns: 1fr;
+        flex-direction: column;
     }
     
     .stats {
@@ -396,5 +389,6 @@ td:nth-child(3) { /* Kolom Kepercayaan */
 
     th, td {
         padding: 0.5rem;
+        font-size: 0.9rem;
     }
 } 

@@ -12,7 +12,7 @@ async function initModel() {
         model = await tf.loadLayersModel('model/model.json');
         
         // Memuat vocabulary
-        const response = await fetch('model/vocab.json');
+        const response = await fetch('model/vocabs.json');
         vocab = await response.json();
         
         console.log('Model dan vocabulary berhasil dimuat!');
@@ -201,8 +201,9 @@ analyzeBatchBtn.addEventListener('click', async () => {
 
             const result = await analyzeComment(row.comment);
             const commentData = {
-                comment: row.comment,
-                confidence: result.confidence
+                ...row, // Preserve all original columns
+                confidence: result.confidence,
+                category: result.category
             };
 
             switch (result.category) {
@@ -277,15 +278,37 @@ analyzeBatchBtn.addEventListener('click', async () => {
     }
 });
 
+// Update fungsi updateTable untuk memperbaiki tampilan
+function updateTable(tableId, comments) {
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    tbody.innerHTML = '';
+
+    comments.forEach((comment) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${comment.label || ''}</td>
+            <td>${comment.author || ''}</td>
+            <td>${comment.comment.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
+            <td>${comment.id || ''}</td>
+            <td>${comment.channel || ''}</td>
+            <td>${comment.title || ''}</td>
+            <td>${(comment.confidence * 100).toFixed(4)}%</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
 // Fungsi untuk mengkonversi data ke CSV
 function convertToCSV(data, category) {
-    const headers = ['No', 'Komentar', 'Kepercayaan', 'Kategori', 'Status'];
-    const rows = data.map((item, index) => [
-        index + 1,
+    const headers = ['label', 'author', 'comment', 'id', 'channel', 'title', 'confidence'];
+    const rows = data.map(item => [
+        item.label || '',
+        item.author || '',
         item.comment,
-        (item.confidence * 100).toFixed(4) + '%',
-        category,
-        'Unik' // Menandakan bahwa ini adalah komentar unik
+        item.id || '',
+        item.channel || '',
+        item.title || '',
+        (item.confidence * 100).toFixed(4) + '%'
     ]);
     
     return [headers, ...rows]
@@ -324,8 +347,13 @@ document.querySelectorAll('.download-btn').forEach(button => {
         const data = rows.map(row => {
             const cells = row.querySelectorAll('td');
             return {
-                comment: cells[1].textContent,
-                confidence: parseFloat(cells[2].textContent) / 100
+                label: cells[0].textContent,
+                author: cells[1].textContent,
+                comment: cells[2].textContent,
+                id: cells[3].textContent,
+                channel: cells[4].textContent,
+                title: cells[5].textContent,
+                confidence: parseFloat(cells[6].textContent) / 100
             };
         });
         
@@ -338,22 +366,6 @@ document.querySelectorAll('.download-btn').forEach(button => {
         downloadCSV(data, categoryLabels[category]);
     });
 });
-
-// Update fungsi updateTable untuk memperbaiki tampilan
-function updateTable(tableId, comments) {
-    const tbody = document.querySelector(`#${tableId} tbody`);
-    tbody.innerHTML = '';
-
-    comments.forEach((comment, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${comment.comment.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
-            <td>${(comment.confidence * 100).toFixed(4)}%</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
 
 // Inisialisasi model saat halaman dimuat
 initModel(); 
